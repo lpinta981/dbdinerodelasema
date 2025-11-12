@@ -17,7 +17,6 @@ function initSupabase() {
     if (typeof window.supabase !== 'undefined') {
         const { createClient } = window.supabase;
         supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Supabase inicializado');
         return supabaseClient;
     } else {
         console.error('❌ Error: Librería de Supabase no disponible');

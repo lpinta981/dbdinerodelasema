@@ -1,0 +1,67 @@
+{
+  "name": "Dinero de la Semana",
+  "short_name": "DineroSemana",
+  "description": "Sistema de gestión de aportes semanales familiares con notificaciones WhatsApp",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay"],
+  "background_color": "#3B82F6",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%233B82F6'/%3E%3Ctext x='50' y='58' text-anchor='middle' fill='white' font-family='Arial' font-size='40' font-weight='bold'%3E$%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%233B82F6'/%3E%3Ctext x='50' y='58' text-anchor='middle' fill='white' font-family='Arial' font-size='40' font-weight='bold'%3E$%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "productivity", "business"],
+  "lang": "es-EC",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 640'%3E%3Crect width='320' height='640' fill='%23f8fafc'/%3E%3Crect x='20' y='80' width='280' height='60' rx='12' fill='%233B82F6'/%3E%3Ctext x='160' y='115' text-anchor='middle' fill='white' font-family='Arial' font-size='16' font-weight='bold'%3EDinero de la Semana%3C/text%3E%3C/svg%3E",
+      "sizes": "320x640",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "label": "Vista móvil de la aplicación"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver Próximos Pagos",
+      "short_name": "Próximos",
+      "description": "Ver pagos pendientes",
+      "url": "/#proximos",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233B82F6'%3E%3Cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z'/%3E%3C/svg%3E",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Generar Reporte",
+      "short_name": "Reportes",
+      "description": "Generar PDF de reportes",
+      "url": "/#reportes",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ef4444'%3E%3Cpath d='M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z'/%3E%3C/svg%3E",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}

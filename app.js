@@ -1,15 +1,11 @@
-// =====================================================
 // DINERO DE LA SEMANA - Aplicación Principal
-// =====================================================
 
 let currentUser = null;
 let isAdmin = false;
 let currentUserIds = []; // Array de IDs de usuarios vinculados
 let allPagos = [];
 
-// =====================================================
 // MODAL DE CONFIRMACIÓN PERSONALIZADO
-// =====================================================
 
 function showCustomConfirm(options = {}) {
     return new Promise((resolve) => {
@@ -134,13 +130,9 @@ function showCustomConfirm(options = {}) {
     });
 }
 
-// =====================================================
 // INICIALIZACIÓN
-// =====================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Iniciando aplicación...');
-    
     // Verificar sesión existente
     const { data: { session } } = await supabaseClient.auth.getSession();
     
@@ -154,9 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
 });
 
-// =====================================================
 // AUTENTICACIÓN
-// =====================================================
 
 function setupEventListeners() {
     // Login
@@ -167,6 +157,9 @@ function setupEventListeners() {
     
     // Generar siguiente pago
     document.getElementById('btn-generar-siguiente')?.addEventListener('click', generarSiguientePago);
+    
+    // Generar PDF
+    document.getElementById('btn-generar-pdf')?.addEventListener('click', mostrarModalPDF);
     
     // Refresh
     document.getElementById('btn-refresh')?.addEventListener('click', loadDashboard);
@@ -202,7 +195,6 @@ async function handleLogin(e) {
 
 async function handleSuccessfulLogin(session) {
     currentUser = session.user;
-    console.log('✅ Usuario autenticado:', currentUser.email);
     
     // Buscar TODOS los usuarios vinculados a este email
     // Estrategia: buscar por email O email_propietario en una sola consulta
@@ -211,8 +203,6 @@ async function handleSuccessfulLogin(session) {
         .select('id, nombre, rol, email, email_propietario, usuario_ferreteria_id')
         .or(`email.eq.${currentUser.email},email_propietario.eq.${currentUser.email}`);
     
-    console.log('🔍 Búsqueda inicial:', usuariosVinculados);
-    
     // Si no encontró nada, buscar por vinculación con usuarios_ferreteria
     if ((!usuariosVinculados || usuariosVinculados.length === 0) && currentUser.id) {
         const result = await supabaseClient
@@ -220,7 +210,6 @@ async function handleSuccessfulLogin(session) {
             .select('id, nombre, rol, email, email_propietario, usuario_ferreteria_id')
             .eq('usuario_ferreteria_id', currentUser.id);
         usuariosVinculados = result.data;
-        console.log('🔍 Búsqueda por ferreteria_id:', usuariosVinculados);
     }
     
     // Si encontró usuarios, buscar otros vinculados al mismo email_propietario
@@ -258,10 +247,6 @@ async function handleSuccessfulLogin(session) {
     // Verificar si es admin (si al menos uno de sus usuarios es admin)
     isAdmin = usuariosVinculados && usuariosVinculados.some(u => u.rol === 'admin');
     
-    console.log('👤 Es admin:', isAdmin);
-    console.log('🔗 Usuarios vinculados:', usuariosVinculados ? usuariosVinculados.map(u => `${u.nombre} (${u.rol})`).join(', ') : 'ninguno');
-    console.log('📋 IDs vinculados:', currentUserIds);
-    
     // Mostrar app
     hideElement('loading-screen');
     hideElement('login-screen');
@@ -289,9 +274,7 @@ async function handleLogout() {
     }
 }
 
-// =====================================================
 // UI SETUP
-// =====================================================
 
 function setupUI() {
     // Mostrar email del usuario
@@ -308,13 +291,9 @@ function setupUI() {
     }
 }
 
-// =====================================================
 // CARGAR DASHBOARD
-// =====================================================
 
 async function loadDashboard() {
-    console.log('📊 Cargando dashboard...');
-    
     try {
         // Cargar próximo pago
         await loadProximoPago();
@@ -370,24 +349,20 @@ async function loadProximoPago() {
                 let colorBorder = 'border-orange-400';
                 
                 if (diasDiferencia < 0) {
-                    mensajeTiempo = `⚠️ Atrasado ${Math.abs(diasDiferencia)} ${Math.abs(diasDiferencia) === 1 ? 'día' : 'días'}`;
+                    mensajeTiempo = `<i class="fas fa-exclamation-triangle text-red-500"></i> Atrasado ${Math.abs(diasDiferencia)} ${Math.abs(diasDiferencia) === 1 ? 'día' : 'días'}`;
                     colorBorder = 'border-red-400';
                 } else if (diasDiferencia === 0) {
-                    mensajeTiempo = '🔔 ¡Hoy!';
+                    mensajeTiempo = '<i class="fas fa-bell text-yellow-500"></i> ¡Hoy!';
                     colorBorder = 'border-yellow-400';
                 } else if (diasDiferencia === 1) {
-                    mensajeTiempo = '� Mañana';
+                    mensajeTiempo = '<i class="fas fa-clock text-blue-500"></i> Mañana';
                 } else {
-                    mensajeTiempo = `📅 En ${diasDiferencia} días`;
+                    mensajeTiempo = `<i class="fas fa-calendar-alt text-blue-500"></i> En ${diasDiferencia} días`;
                 }
                 
-                // Si es admin, agregar clases y atributos para hacer clickeable
-                const clickableClass = isAdmin ? 'cursor-pointer hover:bg-white/30 active:bg-white/40 transition-all' : '';
-                const dataAttributes = isAdmin ? `data-pago-id="${pago.id}" data-usuario-nombre="${pago.usuario.nombre}" onclick="handlePagoClick(this)"` : '';
-                
                 return `
-                    <div class="bg-white/20 backdrop-blur-sm rounded-lg p-3 border-l-4 ${colorBorder} ${clickableClass}" ${dataAttributes}>
-                        <div class="flex items-center justify-between">
+                    <div class="bg-white/20 backdrop-blur-sm rounded-lg p-3 border-l-4 ${colorBorder}">
+                        <div class="flex items-center justify-between mb-3">
                             <div>
                                 <p class="font-bold text-white">${pago.usuario.nombre}</p>
                                 <p class="text-xs text-white/80">${formatFecha(pago.fecha_asignada)}</p>
@@ -397,7 +372,18 @@ async function loadProximoPago() {
                                 <p class="text-xs text-white/90">${mensajeTiempo}</p>
                             </div>
                         </div>
-                        ${isAdmin ? '<p class="text-xs text-white/70 mt-2 text-center">👆 Click para marcar como pagado</p>' : ''}
+                        ${isAdmin ? `
+                        <div class="flex gap-2">
+                            <button onclick="handlePagoClick('${pago.id}', '${pago.usuario.nombre}')" 
+                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 border border-green-300/50 text-white text-xs py-2 px-3 rounded-lg transition-all">
+                                ✓ Marcar Pagado
+                            </button>
+                            <button onclick="handleNotificarPago('${pago.id}', '${pago.usuario.nombre}', '${formatFecha(pago.fecha_asignada)}', '${formatMonto(pago.monto)}')" 
+                                class="flex-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-300/50 text-white text-xs py-2 px-3 rounded-lg transition-all">
+                                <i class="fas fa-mobile-alt mr-1"></i> Notificar
+                            </button>
+                        </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('');
@@ -421,7 +407,7 @@ async function loadProximoPago() {
             proximoPagoCard.className = 'bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-5 text-white';
             miniList.innerHTML = `
                 <div class="text-center py-4">
-                    <p class="text-2xl font-bold">¡Todo al día! 🎉</p>
+                    <p class="text-2xl font-bold"><i class="fas fa-check-circle text-green-500 mr-2"></i>¡Todo al día!</p>
                     <p class="text-sm opacity-90 mt-2">No hay pagos pendientes</p>
                 </div>
             `;
@@ -434,11 +420,8 @@ async function loadProximoPago() {
 }
 
 // Función para manejar click en pagos pendientes (solo admin)
-async function handlePagoClick(element) {
+async function handlePagoClick(pagoId, usuarioNombre) {
     if (!isAdmin) return;
-    
-    const pagoId = element.getAttribute('data-pago-id');
-    const usuarioNombre = element.getAttribute('data-usuario-nombre');
     
     // Confirmación personalizada
     const confirmar = await showCustomConfirm({
@@ -452,9 +435,7 @@ async function handlePagoClick(element) {
     if (!confirmar) return;
     
     try {
-        // Mostrar loading en el elemento
-        element.style.opacity = '0.5';
-        element.style.pointerEvents = 'none';
+        showToast('Marcando como pagado...', 'info');
         
         const { data, error } = await supabaseClient
             .rpc('marcar_pago_completado', { pago_id: pagoId });
@@ -462,18 +443,366 @@ async function handlePagoClick(element) {
         if (error) throw error;
         
         // Mostrar mensaje de éxito
-        showToast(`✅ Pago de ${usuarioNombre} marcado como PAGADO`, 'success');
+        showToast(`Pago de ${usuarioNombre} marcado como PAGADO`, 'success');
+        
+        // Enviar mensaje de agradecimiento automático
+        await enviarMensajeAgradecimiento(pagoId, usuarioNombre);
         
         // Recargar datos
         await loadProximoPago();
         await loadPagos();
-        await loadStats();
+        if (isAdmin) {
+            await loadEstadisticas();
+        }
         
     } catch (error) {
         console.error('❌ Error marcando pago:', error);
-        showToast('❌ Error al marcar el pago. Intenta de nuevo.', 'error');
-        element.style.opacity = '1';
-        element.style.pointerEvents = 'auto';
+        showToast('Error al marcar el pago. Intenta de nuevo.', 'error');
+    }
+}
+
+// Función para enviar mensaje de agradecimiento automático
+async function enviarMensajeAgradecimiento(pagoId, usuarioNombre) {
+    try {
+        // Obtener configuración de WhatsApp
+        const { data: config, error: errorConfig } = await supabaseClient
+            .from('dinerosemana_config')
+            .select('apikey, instance')
+            .eq('id', 1)
+            .single();
+            
+        if (errorConfig || !config?.apikey || !config?.instance) {
+            // Si no hay configuración, no enviar mensaje pero no mostrar error
+            return;
+        }
+        
+        // Obtener datos completos del pago y usuario
+        const { data: pago, error: errorPago } = await supabaseClient
+            .from('dinerosemana_pagos')
+            .select(`
+                *,
+                usuario:dinerosemana_usuarios(nombre, telefono, email)
+            `)
+            .eq('id', pagoId)
+            .single();
+            
+        if (errorPago || !pago?.usuario?.telefono) {
+            // Si no tiene teléfono, no enviar mensaje
+            return;
+        }
+        
+        // Crear mensaje profesional de agradecimiento
+        const fechaPago = new Date().toLocaleDateString('es-EC', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        const mensajeAgradecimiento = `🎉 *¡Pago Confirmado!* 🎉
+
+Hola *${pago.usuario.nombre}*,
+
+✅ Hemos registrado exitosamente tu aporte semanal de *${formatMonto(pago.monto)}*.
+
+📅 *Fecha de registro:* ${fechaPago}
+💰 *Monto:* ${formatMonto(pago.monto)}
+📋 *Estado:* PAGADO ✓
+
+¡Muchas gracias por tu puntualidad y compromiso con nuestro sistema de aportes familiares! 🏆
+
+Tu contribución es muy valiosa para mantener este hermoso proyecto en funcionamiento.
+
+_Sistema Dinero de la Semana_ 💙
+_Mensaje automático de confirmación_`;
+        
+        // Enviar mensaje de agradecimiento
+        const whatsappUrl = `https://api.manasakilla.com/message/sendText/${config.instance}`;
+        const whatsappOptions = {
+            method: 'POST',
+            headers: {
+                'apikey': config.apikey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                number: pago.usuario.telefono,
+                text: mensajeAgradecimiento,
+                delay: 0,
+                linkPreview: false,
+                mentionsEveryOne: false
+            })
+        };
+        
+        const response = await fetch(whatsappUrl, whatsappOptions);
+        const result = await response.json();
+        
+        // Manejar errores HTTP
+        if (!response.ok) {
+            console.error('Error enviando agradecimiento:', response.status, result);
+            return;
+        }
+        
+        // Si hay error explícito en la respuesta
+        if (result.error === true || (result.status && result.status === 'error')) {
+            console.error('Error en respuesta WhatsApp agradecimiento:', result.message);
+            return;
+        }
+        
+        // Mostrar confirmación discreta (sin interrumpir el flujo principal)
+        setTimeout(() => {
+            showToast(`Mensaje de agradecimiento enviado a ${usuarioNombre}`, 'success');
+        }, 2000);
+        
+    } catch (error) {
+        // Error silencioso - no interrumpir el flujo principal
+        console.error('Error enviando agradecimiento automático:', error);
+    }
+}
+
+// Función para notificar pago por WhatsApp (solo admin)
+async function handleNotificarPago(pagoId, usuarioNombre, fechaAsignada, monto) {
+    if (!isAdmin) return;
+    
+    // Confirmación personalizada
+    const confirmar = await showCustomConfirm({
+        title: 'Enviar notificación',
+        message: `¿Enviar notificación por WhatsApp a ${usuarioNombre} sobre el pago asignado?`,
+        confirmText: 'Sí, enviar notificación',
+        cancelText: 'Cancelar',
+        type: 'info'
+    });
+    
+    if (!confirmar) return;
+    
+    try {
+        showToast('Enviando notificación...', 'info');
+        
+        // Obtener datos del pago y usuario
+        const { data: pago, error: errorPago } = await supabaseClient
+            .from('dinerosemana_pagos')
+            .select(`
+                *,
+                usuario:dinerosemana_usuarios(id, nombre, telefono)
+            `)
+            .eq('id', pagoId)
+            .single();
+            
+        if (errorPago || !pago?.usuario) {
+            throw new Error('No se encontró el pago o usuario asociado');
+        }
+        
+        const usuario = pago.usuario;
+        
+        if (!usuario?.telefono) {
+            throw new Error('El usuario no tiene número de teléfono registrado');
+        }
+        
+        if (!usuario?.telefono) {
+            throw new Error('El usuario no tiene número de teléfono registrado');
+        }
+        
+        // Obtener configuración de WhatsApp
+        const { data: config, error: errorConfig } = await supabaseClient
+            .from('dinerosemana_config')
+            .select('apikey, instance')
+            .eq('id', 1)
+            .single();
+            
+        if (errorConfig) {
+            throw new Error('Error al obtener configuración de WhatsApp: ' + errorConfig.message);
+        }
+        
+        if (!config?.apikey || !config?.instance) {
+            throw new Error('Configuración de WhatsApp incompleta. Por favor configura la API Key e Instancia en la base de datos.');
+        }
+        
+        // Preparar el mensaje
+        const mensaje = `🏦 *DINERO DE LA SEMANA* 🏦
+
+Hola *${usuarioNombre}*,
+
+Te comunicamos que se te ha asignado dar el dinero de la semana correspondiente a:
+
+📅 *Fecha asignada:* ${fechaAsignada}
+💰 *Monto:* ${monto}
+
+Por favor, recuerda realizar tu aporte en la fecha indicada.
+
+¡Gracias por tu participación! 😊
+
+_Mensaje automático del sistema_`;
+        
+        // Enviar mensaje por WhatsApp
+        const whatsappUrl = `https://api.manasakilla.com/message/sendText/${config.instance}`;
+        const whatsappOptions = {
+            method: 'POST',
+            headers: {
+                'apikey': config.apikey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                number: usuario.telefono,
+                text: mensaje,
+                delay: 0,
+                linkPreview: false,
+                mentionsEveryOne: false
+            })
+        };
+        
+
+        
+        const response = await fetch(whatsappUrl, whatsappOptions);
+        const result = await response.json();
+        
+        // Manejar errores HTTP
+        if (!response.ok) {
+            let errorMsg = `Error ${response.status}`;
+            
+            if (response.status === 400) {
+                errorMsg = 'Solicitud inválida. Verifica la configuración de API Key e Instancia.';
+            } else if (response.status === 401) {
+                errorMsg = 'API Key inválida o sin permisos.';
+            } else if (response.status === 404) {
+                errorMsg = 'Instancia no encontrada. Verifica el nombre de la instancia.';
+            } else if (result.message) {
+                errorMsg = result.message;
+            }
+            throw new Error(`Error del servicio WhatsApp (${response.status}): ${errorMsg}`);
+        }
+        
+        // Si llegamos aquí con status 200, es éxito
+        // Solo verificar si hay error explícito en la respuesta
+        if (result.error === true || (result.status && result.status === 'error')) {
+            throw new Error(`Error en WhatsApp: ${result.message || 'Error en el servicio'}`);
+        }
+        
+        // Mostrar mensaje de éxito
+        showToast(`✅ Notificación enviada a ${usuarioNombre}`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Error enviando notificación:', error);
+        showToast(`❌ Error al enviar notificación: ${error.message}`, 'error');
+    }
+}
+
+// Función para probar configuración de WhatsApp
+async function testWhatsAppConfig() {
+    if (!isAdmin) return;
+    
+    const confirmar = await showCustomConfirm({
+        title: 'Probar WhatsApp',
+        message: '¿Enviar un mensaje de prueba para verificar la configuración de WhatsApp? Se enviará a tu propio número.',
+        confirmText: 'Sí, probar',
+        cancelText: 'Cancelar',
+        type: 'info'
+    });
+    
+    if (!confirmar) return;
+    
+    try {
+        showToast('Probando configuración de WhatsApp...', 'info');
+        
+        // Obtener configuración de WhatsApp
+        const { data: config, error: errorConfig } = await supabaseClient
+            .from('dinerosemana_config')
+            .select('apikey, instance')
+            .eq('id', 1)
+            .single();
+            
+        if (errorConfig) {
+            throw new Error('Error al obtener configuración: ' + errorConfig.message);
+        }
+        
+        if (!config?.apikey || !config?.instance) {
+            throw new Error('Configuración de WhatsApp incompleta. Por favor configura la API Key e Instancia en la base de datos.');
+        }
+        
+        // Obtener datos del usuario admin actual
+        const { data: usuario, error: errorUsuario } = await supabaseClient
+            .from('dinerosemana_usuarios')
+            .select('telefono, nombre')
+            .eq('email', currentUser.email)
+            .single();
+            
+        if (errorUsuario || !usuario?.telefono) {
+            throw new Error('⚠️ No tienes número de teléfono configurado.\n\nPara agregar tu número:\n\n1. Ejecuta:\n   UPDATE dinerosemana_usuarios SET \n   telefono = \'593XXXXXXXXX\' \n   WHERE email = \'' + currentUser.email + '\';');
+        }
+        
+        // Preparar mensaje de prueba
+        const mensajePrueba = `🧪 *PRUEBA DE CONFIGURACIÓN* 🧪
+
+Hola *${usuario.nombre}*,
+
+Este es un mensaje de prueba del sistema *Dinero de la Semana*.
+
+✅ Configuración de WhatsApp: *FUNCIONANDO*
+📱 API Key: *Válida*
+🔗 Instancia: *${config.instance}*
+
+_Mensaje de prueba automático_`;
+        
+        // Enviar mensaje de prueba
+        const whatsappUrl = `https://api.manasakilla.com/message/sendText/${config.instance}`;
+        const whatsappOptions = {
+            method: 'POST',
+            headers: {
+                'apikey': config.apikey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                number: usuario.telefono,
+                text: mensajePrueba,
+                delay: 0,
+                linkPreview: false,
+                mentionsEveryOne: false
+            })
+        };
+        
+        const response = await fetch(whatsappUrl, whatsappOptions);
+        const result = await response.json();
+        
+        // Manejar errores HTTP
+        if (!response.ok) {
+            let errorMsg = `Error ${response.status}`;
+            
+            if (response.status === 400) {
+                errorMsg = 'Solicitud inválida. Verifica API Key e Instancia.';
+            } else if (response.status === 401) {
+                errorMsg = 'API Key inválida o sin permisos.';
+            } else if (response.status === 404) {
+                errorMsg = 'Instancia no encontrada.';
+            } else if (result.message) {
+                errorMsg = result.message;
+            }
+            throw new Error(`Error ${response.status}: ${errorMsg}`);
+        }
+        
+        // Si llegamos aquí con status 200, es éxito
+        // Solo verificar si hay error explícito en la respuesta
+        if (result.error === true || (result.status && result.status === 'error')) {
+            throw new Error(`Error: ${result.message || 'Error en el servicio'}`);
+        }
+        
+        showToast(`✅ Prueba exitosa! Revisa tu WhatsApp (${usuario.telefono})`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Error en prueba WhatsApp:', error);
+        
+        // Mostrar error más detallado
+        const errorLines = error.message.split('\n');
+        if (errorLines.length > 1) {
+            // Error con múltiples líneas (instrucciones)
+            await showCustomConfirm({
+                title: 'Error de Configuración',
+                message: error.message,
+                confirmText: 'Entendido',
+                cancelText: '',
+                type: 'warning'
+            });
+        } else {
+            // Error simple
+            showToast(`❌ Error: ${error.message}`, 'error');
+        }
     }
 }
 
@@ -505,9 +834,6 @@ function showToast(message, type = 'info') {
 
 async function loadPagos() {
     try {
-        console.log('📥 Cargando pagos para IDs:', currentUserIds);
-        console.log('🔐 Es admin:', isAdmin);
-        
         let query = supabaseClient
             .from('dinerosemana_pagos')
             .select(`
@@ -518,16 +844,12 @@ async function loadPagos() {
         
         // Si no es admin, filtrar solo pagos de los usuarios vinculados
         if (!isAdmin && currentUserIds.length > 0) {
-            console.log('🔍 Filtrando pagos para usuarios:', currentUserIds);
             query = query.in('usuario_id', currentUserIds);
         }
         
         const { data, error } = await query;
         
         if (error) throw error;
-        
-        console.log('📦 Pagos cargados:', data);
-        console.log('📊 Total pagos encontrados:', data ? data.length : 0);
         
         allPagos = data || [];
         renderPagos(allPagos);
@@ -654,9 +976,7 @@ async function loadEstadisticas() {
     }
 }
 
-// =====================================================
 // ACCIONES DE ADMIN
-// =====================================================
 
 async function generarSiguientePago() {
     const confirmado = await showCustomConfirm({
@@ -743,9 +1063,7 @@ async function desmarcarPago(pagoId) {
     }
 }
 
-// =====================================================
 // UTILIDADES
-// =====================================================
 
 function formatFecha(fecha) {
     if (!fecha) return '-';
@@ -819,9 +1137,7 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// =====================================================
 // FUNCIONES ANTIGUAS - COMENTADAS (Ya no se usan)
-// =====================================================
 
 // Función antigua de modal - reemplazada por showCustomConfirm
 /*
@@ -858,18 +1174,459 @@ function closeModal() {
 }
 */
 
-// =====================================================
 // UI HELPERS
-// =====================================================
 
 function showLoginScreen() {
     hideElement('loading-screen');
     showElement('login-screen');
 }
 
-// =====================================================
+// ============================
+// FUNCIONES PARA GENERAR PDF
+// ============================
+
+// Mostrar modal de filtros PDF
+function mostrarModalPDF() {
+    if (!isAdmin) return;
+    
+    // Configurar año actual
+    const añoActual = new Date().getFullYear();
+    document.getElementById('pdf-period-label').textContent = `Período (${añoActual}):`;
+    document.getElementById('pdf-year-text').textContent = `Todo el año ${añoActual}`;
+    
+    cargarUsuariosParaPDF();
+    configurarEventListenersPDF();
+    showElement('pdf-filters-modal');
+}
+
+// Cargar usuarios en botones con selección múltiple (excluir admin)
+async function cargarUsuariosParaPDF() {
+    try {
+        const { data: usuarios, error } = await supabaseClient
+            .from('dinerosemana_usuarios')
+            .select('id, nombre, orden, rol')
+            .neq('rol', 'admin')  // Excluir administradores
+            .order('orden');
+        
+        const container = document.getElementById('pdf-user-buttons');
+        container.innerHTML = '';
+        
+        if (usuarios && usuarios.length > 0) {
+            usuarios.forEach(usuario => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'pdf-user-btn p-3 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:border-red-500 hover:text-red-600 transition-colors';
+                button.dataset.userId = usuario.id;
+                button.dataset.selected = 'false';
+                button.innerHTML = `<i class="fas fa-user mr-2"></i>${usuario.nombre}`;
+                
+                button.addEventListener('click', function() {
+                    // Toggle selección múltiple
+                    if (this.dataset.selected === 'false') {
+                        // Seleccionar
+                        this.dataset.selected = 'true';
+                        this.classList.remove('border-gray-300', 'text-gray-700');
+                        this.classList.add('border-red-500', 'bg-red-50', 'text-red-700');
+                        this.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${usuario.nombre}`;
+                    } else {
+                        // Deseleccionar
+                        this.dataset.selected = 'false';
+                        this.classList.remove('border-red-500', 'bg-red-50', 'text-red-700');
+                        this.classList.add('border-gray-300', 'text-gray-700');
+                        this.innerHTML = `<i class="fas fa-user mr-2"></i>${usuario.nombre}`;
+                    }
+                });
+                
+                container.appendChild(button);
+            });
+            
+            // Configurar botones de Todos/Ninguno
+            configurarBotonesSeleccion();
+        } else {
+            container.innerHTML = '<p class="text-gray-500 text-center col-span-2">No hay usuarios disponibles</p>';
+        }
+    } catch (error) {
+        console.error('Error cargando usuarios:', error);
+        document.getElementById('pdf-user-buttons').innerHTML = '<p class="text-red-500 text-center col-span-2">Error cargando usuarios</p>';
+    }
+}
+
+// Configurar botones de selección múltiple
+function configurarBotonesSeleccion() {
+    document.getElementById('pdf-select-all').addEventListener('click', function() {
+        document.querySelectorAll('.pdf-user-btn').forEach(btn => {
+            if (btn.dataset.selected === 'false') {
+                btn.click(); // Trigger click para seleccionar
+            }
+        });
+    });
+    
+    document.getElementById('pdf-clear-all').addEventListener('click', function() {
+        document.querySelectorAll('.pdf-user-btn').forEach(btn => {
+            if (btn.dataset.selected === 'true') {
+                btn.click(); // Trigger click para deseleccionar
+            }
+        });
+    });
+}
+
+// Configurar event listeners del modal PDF
+function configurarEventListenersPDF() {
+    // Radio buttons para tipo de filtro
+    document.querySelectorAll('input[name="pdf-filter-type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const userSelector = document.getElementById('pdf-user-selector');
+            if (this.value === 'usuario') {
+                showElement('pdf-user-selector');
+            } else {
+                hideElement('pdf-user-selector');
+            }
+        });
+    });
+    
+    // Radio buttons para período
+    document.querySelectorAll('input[name="pdf-period-type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const monthsSelector = document.getElementById('pdf-months-selector');
+            if (this.value === 'meses-especificos') {
+                showElement('pdf-months-selector');
+            } else {
+                hideElement('pdf-months-selector');
+            }
+        });
+    });
+    
+    // Botón cerrar
+    document.getElementById('pdf-close-btn').addEventListener('click', cerrarModalPDF);
+    document.getElementById('pdf-cancel-btn').addEventListener('click', cerrarModalPDF);
+    
+    // Botón generar
+    document.getElementById('pdf-generate-btn').addEventListener('click', generarPDF);
+    
+    // Click fuera del modal
+    document.getElementById('pdf-filters-modal').onclick = function(e) {
+        if (e.target === this) {
+            cerrarModalPDF();
+        }
+    };
+}
+
+// Cerrar modal PDF
+function cerrarModalPDF() {
+    hideElement('pdf-filters-modal');
+    
+    // Resetear formulario
+    document.querySelector('input[name="pdf-filter-type"][value="todos"]').checked = true;
+    document.querySelector('input[name="pdf-period-type"][value="todo-año"]').checked = true;
+    
+    // Resetear botones de usuario
+    document.querySelectorAll('.pdf-user-btn').forEach(btn => {
+        if (btn.dataset.selected === 'true') {
+            btn.click(); // Deseleccionar todos
+        }
+    });
+    
+    document.querySelectorAll('.pdf-month-check').forEach(check => check.checked = false);
+    hideElement('pdf-user-selector');
+    hideElement('pdf-months-selector');
+}
+
+// Generar PDF con filtros aplicados
+async function generarPDF() {
+    try {
+        showToast('Generando reporte PDF...', 'info');
+        
+        // Obtener filtros
+        const tipoFiltro = document.querySelector('input[name="pdf-filter-type"]:checked').value;
+        const tipoPeriodo = document.querySelector('input[name="pdf-period-type"]:checked').value;
+        
+        // Obtener usuarios seleccionados de los botones
+        const usuariosSeleccionados = Array.from(document.querySelectorAll('.pdf-user-btn[data-selected="true"]'))
+            .map(btn => btn.dataset.userId);
+        
+        let mesesSeleccionados = [];
+        if (tipoPeriodo === 'meses-especificos') {
+            mesesSeleccionados = Array.from(document.querySelectorAll('.pdf-month-check:checked'))
+                .map(check => parseInt(check.value));
+            
+            if (mesesSeleccionados.length === 0) {
+                showToast('Selecciona al menos un mes', 'error');
+                return;
+            }
+        }
+        
+        if (tipoFiltro === 'usuario' && usuariosSeleccionados.length === 0) {
+            showToast('Selecciona al menos un usuario', 'error');
+            return;
+        }
+        
+        // Obtener datos según filtros
+        let query = supabaseClient
+            .from('dinerosemana_pagos')
+            .select(`
+                *,
+                usuario:dinerosemana_usuarios(nombre, orden)
+            `)
+            .order('fecha_asignada', { ascending: false });
+        
+        // Aplicar filtro de usuarios
+        if (tipoFiltro === 'usuario') {
+            query = query.in('usuario_id', usuariosSeleccionados);
+        }
+        
+        // Aplicar filtro de año actual
+        const añoActual = new Date().getFullYear();
+        query = query.gte('fecha_asignada', `${añoActual}-01-01`).lte('fecha_asignada', `${añoActual}-12-31`);
+        
+        const { data: pagos, error } = await query;
+        
+        if (error) throw error;
+        
+        // Filtrar por meses si es necesario
+        let pagosFiltrados = pagos;
+        if (tipoPeriodo === 'meses-especificos') {
+            pagosFiltrados = pagos.filter(pago => {
+                const mes = new Date(pago.fecha_asignada).getMonth() + 1;
+                return mesesSeleccionados.includes(mes);
+            });
+        }
+        
+        // Generar el PDF
+        await crearPDF(pagosFiltrados, {
+            tipoFiltro,
+            tipoPeriodo,
+            usuariosSeleccionados,
+            mesesSeleccionados
+        });
+        
+        cerrarModalPDF();
+        showToast('✅ Reporte PDF generado exitosamente', 'success');
+        
+    } catch (error) {
+        console.error('Error generando PDF:', error);
+        showToast('❌ Error al generar PDF', 'error');
+    }
+}
+
+// Crear el PDF con los datos filtrados
+async function crearPDF(pagos, filtros) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Configuración
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    let currentY = margin;
+    
+    // Header del documento
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('REPORTE DE PAGOS', pageWidth / 2, currentY, { align: 'center' });
+    currentY += 10;
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Sistema Dinero de la Semana', pageWidth / 2, currentY, { align: 'center' });
+    currentY += 15;
+    
+    // Información del reporte
+    doc.setFontSize(10);
+    doc.text(`Generado: ${new Date().toLocaleDateString('es-EC', {
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })}`, margin, currentY);
+    currentY += 8;
+    
+    // Filtros aplicados
+    const añoActual = new Date().getFullYear();
+    let filtroTexto = '';
+    if (filtros.tipoFiltro === 'todos') {
+        filtroTexto = 'Todos los usuarios';
+    } else {
+        const usuariosBtns = document.querySelectorAll('.pdf-user-btn[data-selected="true"]');
+        const nombresUsuarios = Array.from(usuariosBtns).map(btn => 
+            btn.textContent.replace(/\s*(fas? fa-[\w-]+|\uf[\da-f]+)\s*/g, '').trim()
+        );
+        
+        if (nombresUsuarios.length === 1) {
+            filtroTexto = `Usuario: ${nombresUsuarios[0]}`;
+        } else {
+            filtroTexto = `Usuarios (${nombresUsuarios.length}): ${nombresUsuarios.join(', ')}`;
+        }
+    }
+    
+    if (filtros.tipoPeriodo === 'todo-año') {
+        filtroTexto += ` | Período: Todo el año ${añoActual}`;
+    } else {
+        const mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const mesesTexto = filtros.mesesSeleccionados.map(m => mesesNombres[m-1]).join(', ');
+        filtroTexto += ` | Meses: ${mesesTexto}`;
+    }
+    
+    doc.text(`Filtros: ${filtroTexto}`, margin, currentY);
+    currentY += 8;
+    
+    doc.text(`Total de registros: ${pagos.length}`, margin, currentY);
+    currentY += 15;
+    
+    // Headers de la tabla
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    
+    // Determinar si mostrar columna Usuario
+    const mostrarUsuario = filtros.tipoFiltro === 'todos' || 
+                          (filtros.tipoFiltro === 'usuario' && filtros.usuariosSeleccionados.length > 1);
+    
+    const colWidths = mostrarUsuario ? [35, 25, 25, 35, 40] : [40, 35, 35, 50];
+    const headers = mostrarUsuario 
+        ? ['Usuario', 'Fecha', 'Monto', 'Estado', 'Fecha Pago']
+        : ['Fecha Asignada', 'Monto', 'Estado', 'Fecha Pagado'];
+    
+    let currentX = margin;
+    headers.forEach((header, i) => {
+        doc.text(header, currentX, currentY);
+        currentX += colWidths[i];
+    });
+    
+    currentY += 5;
+    doc.line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 8;
+    
+    // Datos de la tabla con colores alternos
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    const rowHeight = 8;
+    
+    pagos.forEach((pago, index) => {
+        // Verificar si necesitamos nueva página
+        if (currentY > 270) {
+            doc.addPage();
+            currentY = margin;
+            
+            // Re-dibujar headers en la nueva página
+            doc.setFont('helvetica', 'bold');
+            currentX = margin;
+            headers.forEach((header, i) => {
+                doc.text(header, currentX, currentY);
+                currentX += colWidths[i];
+            });
+            currentY += 5;
+            doc.line(margin, currentY, pageWidth - margin, currentY);
+            currentY += 8;
+            doc.setFont('helvetica', 'normal');
+        }
+        
+        // Color de fondo alterno
+        if (index % 2 === 0) {
+            doc.setFillColor(248, 250, 252); // bg-slate-50
+            doc.rect(margin - 2, currentY - 5, pageWidth - 2 * margin + 4, rowHeight, 'F');
+        }
+        
+        currentX = margin;
+        
+        const fechaAsignada = new Date(pago.fecha_asignada).toLocaleDateString('es-EC');
+        const monto = formatMonto(pago.monto);
+        const fechaPago = pago.fecha_pagada ? new Date(pago.fecha_pagada).toLocaleDateString('es-EC') : '-';
+        
+        // Color del texto según el estado
+        const estado = pago.estado === 'PAGADO' ? 'PAGADO' : 'PENDIENTE';
+        const colorEstado = pago.estado === 'PAGADO' ? [34, 197, 94] : [239, 68, 68];
+        
+        doc.setTextColor(0, 0, 0); // Negro por defecto
+        
+        if (mostrarUsuario) {
+            // Con columna Usuario (todos o múltiples usuarios)
+            const usuario = pago.usuario?.nombre || 'N/A';
+            doc.text(usuario.substring(0, 20), currentX, currentY);
+            currentX += colWidths[0];
+            doc.text(fechaAsignada, currentX, currentY);
+            currentX += colWidths[1];
+            doc.text(monto, currentX, currentY);
+            currentX += colWidths[2];
+            doc.setTextColor(...colorEstado);
+            doc.text(estado, currentX, currentY);
+            currentX += colWidths[3];
+            doc.setTextColor(0, 0, 0);
+            doc.text(fechaPago, currentX, currentY);
+        } else {
+            // Sin columna Usuario (un solo usuario)
+            doc.text(fechaAsignada, currentX, currentY);
+            currentX += colWidths[0];
+            doc.text(monto, currentX, currentY);
+            currentX += colWidths[1];
+            doc.setTextColor(...colorEstado);
+            doc.text(estado, currentX, currentY);
+            currentX += colWidths[2];
+            doc.setTextColor(0, 0, 0);
+            doc.text(fechaPago, currentX, currentY);
+        }
+        
+        // Restablecer color de texto
+        doc.setTextColor(0, 0, 0);
+        currentY += rowHeight;
+    });
+    
+    // Estadísticas al final
+    currentY += 10;
+    doc.line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 10;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('ESTADÍSTICAS:', margin, currentY);
+    currentY += 8;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    
+    const totalPagos = pagos.length;
+    const pagosPagados = pagos.filter(p => p.estado === 'PAGADO').length;
+    const pagosPendientes = totalPagos - pagosPagados;
+    const montoTotal = pagos.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+    const montoPagado = pagos.filter(p => p.estado === 'PAGADO').reduce((sum, p) => sum + parseFloat(p.monto), 0);
+    
+    doc.text(`Total de pagos: ${totalPagos}`, margin, currentY);
+    currentY += 6;
+    doc.text(`Pagos completados: ${pagosPagados}`, margin, currentY);
+    currentY += 6;
+    doc.text(`Pagos pendientes: ${pagosPendientes}`, margin, currentY);
+    currentY += 6;
+    doc.text(`Monto total: ${formatMonto(montoTotal)}`, margin, currentY);
+    currentY += 6;
+    doc.text(`Monto pagado: ${formatMonto(montoPagado)}`, margin, currentY);
+    currentY += 6;
+    doc.text(`Monto pendiente: ${formatMonto(montoTotal - montoPagado)}`, margin, currentY);
+    
+    // Guardar PDF
+    const fechaActual = new Date().toISOString().split('T')[0];
+    let nombreArchivo = `reporte-pagos-${fechaActual}`;
+    
+    if (filtros.tipoFiltro === 'usuario') {
+        const usuariosBtns = document.querySelectorAll('.pdf-user-btn[data-selected="true"]');
+        const nombresUsuarios = Array.from(usuariosBtns).map(btn => 
+            btn.textContent.replace(/\s*(fas? fa-[\w-]+|\uf[\da-f]+)\s*/g, '').trim()
+        );
+        
+        if (nombresUsuarios.length === 1) {
+            nombreArchivo = `reporte-${nombresUsuarios[0].replace(/\s+/g, '-')}-${fechaActual}`;
+        } else {
+            nombreArchivo = `reporte-${nombresUsuarios.length}-usuarios-${fechaActual}`;
+        }
+    }
+    
+    doc.save(`${nombreArchivo}.pdf`);
+}
+
 // FUNCIONES GLOBALES (accesibles desde HTML)
-// =====================================================
 
 window.marcarComoPagado = marcarComoPagado;
 window.desmarcarPago = desmarcarPago;
+window.handlePagoClick = handlePagoClick;
+window.handleNotificarPago = handleNotificarPago;
+window.testWhatsAppConfig = testWhatsAppConfig;
