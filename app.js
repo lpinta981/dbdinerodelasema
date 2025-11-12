@@ -146,11 +146,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
 });
 
+// UTILIDADES UI
+
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('password');
+    const passwordIcon = document.getElementById('password-icon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        passwordIcon.className = 'fas fa-eye-slash text-lg';
+    } else {
+        passwordInput.type = 'password';
+        passwordIcon.className = 'fas fa-eye text-lg';
+    }
+}
+
 // AUTENTICACIÓN
 
 function setupEventListeners() {
     // Login
     document.getElementById('login-form')?.addEventListener('submit', handleLogin);
+    
+    // Toggle password visibility
+    document.getElementById('toggle-password')?.addEventListener('click', togglePasswordVisibility);
     
     // Logout
     document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
